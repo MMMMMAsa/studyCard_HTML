@@ -296,19 +296,20 @@
 </div>
 
 <script>
-// ========== Service Worker (离线缓存) ==========
+// ========== Service Worker（可靠的 Blob URL 注册方式） ==========
 if ('serviceWorker' in navigator) {
-  // 内联 Service Worker 代码
+  // 主页面 URL（去除哈希）
+  const mainPageUrl = location.href.split('#')[0];
+
   const SW_CODE = `
     const CACHE_NAME = 'leitner-v4';
-    const MAIN_PAGE = self.location.href.split('#')[0];
+    const MAIN_URL = '${mainPageUrl}';
 
     self.addEventListener('install', event => {
       event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
-          return cache.add(MAIN_PAGE).catch(err => {
-            // 如果预缓存失败（比如离线时首次安装），忽略错误
-            console.warn('预缓存失败，可能离线:', err);
+          return cache.add(MAIN_URL).catch(err => {
+            console.warn('预缓存主页面失败（可能离线）:', err);
           });
         }).then(() => self.skipWaiting())
       );
@@ -335,32 +336,24 @@ if ('serviceWorker' in navigator) {
             }
             return response;
           }).catch(() => {
-            // 网络失败且无缓存，尝试返回主页
-            return caches.match(MAIN_PAGE);
+            // 网络失败且无缓存，尝试返回主页面
+            return caches.match(MAIN_URL);
           });
         })
       );
     });
   `;
 
-  // 劫持 fetch 以提供 SW 脚本（通过 #sw 哈希）
-  const originalFetch = window.fetch;
-  window.fetch = function(url, opts) {
-    if (typeof url === 'string' && url.endsWith('#sw')) {
-      return Promise.resolve(new Response(SW_CODE, {
-        headers: { 'Content-Type': 'application/javascript' }
-      }));
-    }
-    return originalFetch.apply(this, arguments);
-  };
+  // 使用 Blob URL 注册 Service Worker（兼容移动端 Chrome）
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
 
-  const swUrl = location.href.split('#')[0] + '#sw';
-  navigator.serviceWorker.register(swUrl, { scope: '/' }).catch(err => {
-    console.warn('Service Worker 注册失败:', err);
-  });
+  navigator.serviceWorker.register(swUrl, { scope: '/' })
+    .then(reg => console.log('Service Worker 注册成功，作用域:', reg.scope))
+    .catch(err => console.warn('Service Worker 注册失败:', err));
 }
 
-// ========== 轻提示 Toast ==========
+// ========== 轻提示 ==========
 function showToast(msg) {
   let toast = document.getElementById('appToast');
   if (!toast) {
@@ -372,9 +365,7 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add('show');
   clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => {
-    toast.classList.remove('show');
-  }, 2000);
+  toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
 }
 </script>
 
@@ -400,7 +391,7 @@ function showToast(msg) {
   mLink.href = URL.createObjectURL(mBlob);
   document.head.appendChild(mLink);
 
-  // 应用逻辑
+  // 应用逻辑（与之前一致）
   const BOX_INTERVALS = [0, 1, 3, 7, 14];
   const MAX_BOX = 5;
   let cards = [];
