@@ -167,25 +167,26 @@
     .modal h3 { color: #5e4b3c; }
     .hidden { display: none !important; }
 
-    /* 更新提示条 */
-    .update-toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: #4d3e2f; color: white; padding: 12px 20px;
-      border-radius: 24px; font-size: 0.9rem; z-index: 30;
-      display: flex; align-items: center; gap: 12px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-      animation: slideUp 0.3s ease-out;
-      max-width: 90%;
+    /* 轻提示 (Toast) */
+    .app-toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4d3e2f;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      z-index: 40;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
-    .update-toast button {
-      background: #b89b7b; border: none; color: white;
-      padding: 6px 16px; border-radius: 18px; font-size: 0.85rem;
-      font-weight: 600; cursor: pointer; white-space: nowrap;
-    }
-    .update-toast button:active { background: #a08664; }
-    @keyframes slideUp {
-      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
-      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .app-toast.show {
+      opacity: 1;
     }
   </style>
 </head>
@@ -308,22 +309,11 @@
 </div>
 
 <script>
-// ========== Service Worker + 更新提示 (修复版) ==========
+// ========== Service Worker (基础离线缓存) ==========
 if ('serviceWorker' in navigator) {
-  // SW 代码字符串
   const SW_CODE = `
-const CACHE_NAME = 'leitner-v4.5';
-
-const PRECACHE_URLS = [
-  self.location.href.split('#')[0]
-];
-
-// 监听 SKIP_WAITING 消息
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+const CACHE_NAME = 'leitner-v3';
+const PRECACHE_URLS = [ self.location.href.split('#')[0] ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -372,7 +362,7 @@ self.addEventListener('fetch', event => {
 });
 `;
 
-  // 劫持 fetch 来提供 SW 代码
+  // 劫持 fetch 以提供 SW 代码
   const originalFetch = window.fetch;
   window.fetch = function(url, opts) {
     if (typeof url === 'string' && url.endsWith('#sw')) {
@@ -383,64 +373,27 @@ self.addEventListener('fetch', event => {
     return originalFetch.apply(this, arguments);
   };
 
-  // 注册 Service Worker
   const swUrl = location.href.split('#')[0] + '#sw';
-  let newWorkerWaiting = false;
-
-  navigator.serviceWorker.register(swUrl, { scope: '/' }).then(reg => {
-    console.log('Service Worker 注册成功', reg);
-
-    // 如果已有等待中的新 worker
-    if (reg.waiting && navigator.serviceWorker.controller) {
-      newWorkerWaiting = true;
-      showUpdateToast();
-    }
-
-    // 监听更新
-    reg.addEventListener('updatefound', () => {
-      const installing = reg.installing;
-      if (!installing) return;
-
-      installing.addEventListener('statechange', () => {
-        if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-          newWorkerWaiting = true;
-          showUpdateToast();
-        }
-      });
-    });
-  }).catch(err => {
+  navigator.serviceWorker.register(swUrl, { scope: '/' }).catch(err => {
     console.warn('Service Worker 注册失败:', err);
   });
+}
 
-  // 定期检查更新 (每 30 分钟)
-  setInterval(() => {
-    navigator.serviceWorker.getRegistration().then(reg => {
-      if (reg) reg.update();
-    });
-  }, 30 * 60 * 1000);
-
-  // 显示更新提示条
-  function showUpdateToast() {
-    if (document.getElementById('updateToast')) return;
-
-    const toast = document.createElement('div');
-    toast.id = 'updateToast';
-    toast.className = 'update-toast';
-    toast.innerHTML = `
-      <span>🆕 有新版本可用</span>
-      <button id="updateBtn">更新</button>
-    `;
+// ========== 通用轻提示 ==========
+function showToast(msg) {
+  let toast = document.getElementById('appToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'appToast';
+    toast.className = 'app-toast';
     document.body.appendChild(toast);
-
-    document.getElementById('updateBtn').addEventListener('click', () => {
-      navigator.serviceWorker.getRegistration().then(reg => {
-        if (reg && reg.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-      });
-      window.location.reload();
-    });
   }
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2000);
 }
 </script>
 
@@ -466,7 +419,7 @@ self.addEventListener('fetch', event => {
   mLink.href = URL.createObjectURL(mBlob);
   document.head.appendChild(mLink);
 
-  // ========== 应用逻辑 (完全不变) ==========
+  // ========== 应用逻辑 ==========
   const BOX_INTERVALS = [0, 1, 3, 7, 14];
   const MAX_BOX = 5;
   let cards = [];
@@ -564,6 +517,7 @@ self.addEventListener('fetch', event => {
     document.getElementById('newAnswer').value = '';
     if(!currentCardId) loadNext();
     renderLibrary();
+    showToast('卡片已添加');
   };
 
   function renderLibrary() {
@@ -595,6 +549,7 @@ self.addEventListener('fetch', event => {
     save(); renderLibrary();
     if(currentCardId===editingCardId) displayCard(card);
     closeEditModal();
+    showToast('卡片已更新');
   };
 
   window.deleteCard = function(id) {
@@ -602,6 +557,7 @@ self.addEventListener('fetch', event => {
     cards = cards.filter(c=>c.id!==id);
     save(); renderLibrary();
     if(currentCardId===id) { currentCardId=null; loadNext(); }
+    showToast('卡片已删除');
   };
 
   function getIntervalMs() {
@@ -617,6 +573,7 @@ self.addEventListener('fetch', event => {
     a.click();
     localStorage.setItem('leitner_last_backup', now.toISOString());
     updateBackupDisplay();
+    showToast('备份已导出');
   }
   function S(n) { return String(n).padStart(2,'0'); }
 
@@ -642,6 +599,7 @@ self.addEventListener('fetch', event => {
     document.getElementById('intervalRow').style.display = autoBackupEnabled?'flex':'none';
     localStorage.setItem('leitner_auto_backup', autoBackupEnabled);
     autoBackupEnabled ? scheduleBackup() : clearTimeout(autoBackupTimer);
+    showToast('备份设置已更新');
   };
 
   document.getElementById('backupIntervalNum').onchange = function() {
@@ -649,12 +607,14 @@ self.addEventListener('fetch', event => {
     this.value = backupIntervalNum;
     localStorage.setItem('leitner_backup_num', backupIntervalNum);
     if(autoBackupEnabled) scheduleBackup();
+    showToast('备份间隔已更新');
   };
 
   document.getElementById('backupIntervalUnit').onchange = function() {
     backupIntervalUnit = this.value;
     localStorage.setItem('leitner_backup_unit', backupIntervalUnit);
     if(autoBackupEnabled) scheduleBackup();
+    showToast('备份间隔已更新');
   };
 
   document.getElementById('backupNowBtn').onclick = ()=>{ downloadBackup(); if(autoBackupEnabled) scheduleBackup(); };
@@ -679,6 +639,7 @@ self.addEventListener('fetch', event => {
   document.getElementById('importReplaceBtn').onclick = ()=>{
     cards = pendingImportCards.map(c=>({...c}));
     save(); updateStats(); renderLibrary(); loadNext(); closeImportModal();
+    showToast('导入完成');
   };
   document.getElementById('importMergeBtn').onclick = ()=>{
     const set = new Set(cards.map(c=>c.question.trim().toLowerCase()));
@@ -689,7 +650,7 @@ self.addEventListener('fetch', event => {
       }
     });
     save(); updateStats(); renderLibrary();
-    alert(`新增 ${n} 张`);
+    showToast(`导入完成，新增 ${n} 张`);
     closeImportModal();
   };
 
