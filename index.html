@@ -166,6 +166,27 @@
     }
     .modal h3 { color: #5e4b3c; }
     .hidden { display: none !important; }
+
+    /* 更新提示条 */
+    .update-toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: #4d3e2f; color: white; padding: 12px 20px;
+      border-radius: 24px; font-size: 0.9rem; z-index: 30;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      animation: slideUp 0.3s ease-out;
+      max-width: 90%;
+    }
+    .update-toast button {
+      background: #b89b7b; border: none; color: white;
+      padding: 6px 16px; border-radius: 18px; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .update-toast button:active { background: #a08664; }
+    @keyframes slideUp {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -287,11 +308,63 @@
 </div>
 
 <script>
+// ========== Service Worker + 更新提示 ==========
 if ('serviceWorker' in navigator) {
-  // 使用页内 Service Worker，通过同一个 URL 注册
-  const swUrl = location.href + '#sw';
-  
-  // 拦截 #sw 请求，返回 Service Worker 代码
+  const SW_CODE = `
+const CACHE_NAME = 'leitner-v3';
+
+const PRECACHE_URLS = [
+  self.location.href.split('#')[0]
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return Promise.all(
+        PRECACHE_URLS.map(url => {
+          return fetch(url, { mode: 'no-cors' }).then(response => {
+            return cache.put(url, response);
+          }).catch(() => {
+            return cache.match(url).then(cached => {
+              if (cached) return cache.put(url, cached.clone());
+            });
+          });
+        })
+      );
+    }).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        }
+        return response;
+      }).catch(() => {
+        return caches.match(self.location.href.split('#')[0]);
+      });
+    })
+  );
+});
+`;
+
+  // 劫持 fetch 来提供 SW 代码
   const originalFetch = window.fetch;
   window.fetch = function(url, opts) {
     if (typeof url === 'string' && url.endsWith('#sw')) {
@@ -302,86 +375,91 @@ if ('serviceWorker' in navigator) {
     return originalFetch.apply(this, arguments);
   };
 
+  // 注册 Service Worker
+  const swUrl = location.href.split('#')[0] + '#sw';
+  let newWorkerWaiting = false;
+
   navigator.serviceWorker.register(swUrl, { scope: '/' }).then(reg => {
-    console.log('Service Worker 注册成功', reg.scope);
+    console.log('Service Worker 注册成功');
+
+    // 监听更新
+    reg.addEventListener('updatefound', () => {
+      const installing = reg.installing;
+      if (!installing) return;
+
+      installing.addEventListener('statechange', () => {
+        if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+          // 新版本已安装，但旧版本还在运行
+          newWorkerWaiting = true;
+          showUpdateToast();
+        }
+      });
+    });
+
+    // 如果已经有等待中的 SW
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      newWorkerWaiting = true;
+      showUpdateToast();
+    }
   }).catch(err => {
     console.warn('Service Worker 注册失败:', err);
   });
+
+  // 监听 controllerchange（当新 SW 接管页面时触发）
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // 页面已被新 SW 接管，可以提示用户
+    if (newWorkerWaiting) {
+      newWorkerWaiting = false;
+      hideUpdateToast();
+    }
+  });
+
+  // 定期检查更新（每 30 分钟）
+  setInterval(() => {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg) reg.update();
+    });
+  }, 30 * 60 * 1000);
 }
 
-const SW_CODE = `
-const CACHE_NAME = 'leitner-v2';
+// 更新提示条
+function showUpdateToast() {
+  const existing = document.getElementById('updateToast');
+  if (existing) return;
 
-// 需要缓存的资源
-const PRECACHE_URLS = [
-  self.location.href.split('#')[0]
-];
+  const toast = document.createElement('div');
+  toast.id = 'updateToast';
+  toast.className = 'update-toast';
+  toast.innerHTML = `
+    <span>🆕 有新版本可用</span>
+    <button id="updateBtn">更新</button>
+  `;
+  document.body.appendChild(toast);
 
-// install: 预缓存当前页面
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return Promise.all(
-        PRECACHE_URLS.map(url => {
-          return fetch(url, { mode: 'no-cors' }).then(response => {
-            return cache.put(url, response);
-          }).catch(() => {
-            // 如果网络请求失败（离线），从现有缓存中获取
-            return cache.match(url).then(cached => {
-              if (cached) return cache.put(url, cached.clone());
-            });
-          });
-        })
-      );
-    }).then(() => {
-      return self.skipWaiting();
-    })
-  );
-});
-
-// activate: 清理旧缓存，立即接管所有页面
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-      );
-    }).then(() => {
-      return self.clients.claim();
-    })
-  );
-});
-
-// fetch: 缓存优先策略（离线可用）
-self.addEventListener('fetch', event => {
-  // 只处理 GET 请求
-  if (event.request.method !== 'GET') return;
-  
-  event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        // 有缓存，直接返回
-        return cachedResponse;
+  document.getElementById('updateBtn').addEventListener('click', () => {
+    // 发送消息让等待中的 SW 激活
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
-      
-      // 没有缓存，尝试网络请求
-      return fetch(event.request).then(response => {
-        // 缓存成功的响应
-        if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      }).catch(() => {
-        // 网络失败且无缓存，返回主页面
-        return caches.match(self.location.href.split('#')[0]);
-      });
-    })
-  );
-});
-`;
+    });
+    // 刷新页面
+    window.location.reload();
+  });
+}
+
+function hideUpdateToast() {
+  const toast = document.getElementById('updateToast');
+  if (toast) toast.remove();
+}
+
+// SW 中监听 SKIP_WAITING 消息
+// 需要在 SW_CODE 中添加：
+// self.addEventListener('message', event => {
+//   if (event.data && event.data.type === 'SKIP_WAITING') {
+//     self.skipWaiting();
+//   }
+// });
 </script>
 
 <script>
