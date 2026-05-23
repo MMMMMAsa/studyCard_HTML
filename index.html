@@ -296,21 +296,6 @@
 </div>
 
 <script>
-// ========== 诊断：网络与 SW 状态 ==========
-window.addEventListener('load', () => {
-  const status = document.createElement('div');
-  status.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff0;color:#000;z-index:9999;padding:4px;text-align:center;font-size:12px;';
-  status.textContent = navigator.onLine ? '在线' : '离线';
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    status.textContent += ' | SW 已激活';
-  } else {
-    status.textContent += ' | SW 未激活';
-  }
-  document.body.appendChild(status);
-  // 10秒后自动隐藏诊断条
-  setTimeout(() => { status.style.display = 'none'; }, 10000);
-});
-
 // ========== Service Worker 注册 ==========
 if ('serviceWorker' in navigator) {
   // 先注销所有旧 SW
