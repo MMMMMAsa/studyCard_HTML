@@ -304,31 +304,44 @@
 </div>
 
 <script>
-// ========== Service Worker 注册 ==========
+// ========== Service Worker 注册（自动静默更新） ==========
 if ('serviceWorker' in navigator) {
-  // 先注销所有旧 SW
+  // 先注销所有旧 SW，避免冲突
   navigator.serviceWorker.getRegistrations().then(regs => {
     return Promise.all(regs.map(reg => reg.unregister()));
   }).then(() => {
-    // 延迟注册新 SW
-    setTimeout(() => {
-      navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => {
-          console.log('Service Worker 注册成功，作用域:', reg.scope);
-          reg.addEventListener('updatefound', () => {
-            const installing = reg.installing;
-            installing.addEventListener('statechange', () => {
-              if (installing.state === 'activated') {
-                showToast('应用已缓存，可离线使用');
-              }
-            });
+    // 生成版本号，强制刷新 sw.js（每次页面加载时检查更新）
+    const swUrl = './sw.js?v=' + Date.now();
+    
+    navigator.serviceWorker.register(swUrl, { scope: './' })
+      .then(reg => {
+        console.log('Service Worker 注册成功，作用域:', reg.scope);
+
+        // 如果已有等待中的新 SW 或正在安装
+        if (reg.waiting) {
+          // 直接通知等待中的 SW 立即激活
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        // 监听新 SW 的安装过程
+        reg.addEventListener('updatefound', () => {
+          const installing = reg.installing;
+          installing.addEventListener('statechange', () => {
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+              // 新 SW 已安装，通知它跳过等待，立即激活
+              installing.postMessage({ type: 'SKIP_WAITING' });
+            }
           });
-        })
-        .catch(err => {
-          console.error('Service Worker 注册失败:', err);
-          showToast('SW 注册失败: ' + err.message);
         });
-    }, 500);
+
+        // 当新的 SW 接管页面后，自动刷新页面
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
+      })
+      .catch(err => {
+        console.error('Service Worker 注册失败:', err);
+      });
   });
 }
 
