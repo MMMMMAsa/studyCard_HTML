@@ -175,6 +175,13 @@
       white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
     .app-toast.show { opacity: 1; }
+
+    .guide-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.85rem; color: #b89b7b; text-decoration: none;
+      font-weight: 500;
+    }
+    .guide-link:active { opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -223,6 +230,7 @@
   <div class="page" id="libraryPage">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2 style="color:#5e4b3c;">📚 全部卡片</h2>
+      <a href="guide.html" class="guide-link">📘 使用手册</a>
       <span id="totalCount" style="color:#b7a797;"></span>
     </div>
 
