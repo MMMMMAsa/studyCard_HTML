@@ -311,9 +311,31 @@ window.addEventListener('load', () => {
   
 // ========== Service Worker 注册（使用独立的 sw.js 文件） ==========
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js', { scope: '/' })
-    .then(reg => console.log('Service Worker 注册成功，作用域:', reg.scope))
-    .catch(err => console.warn('Service Worker 注册失败:', err));
+  // 先注销所有旧 SW，避免冲突
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
+  }).then(() => {
+    // 延迟 500ms 后注册新 SW，确保旧 SW 完全卸载
+    setTimeout(() => {
+      navigator.serviceWorker.register('./sw.js', { scope: '/' })
+        .then(reg => {
+          console.log('Service Worker 注册成功，作用域:', reg.scope);
+          // 监听更新
+          reg.addEventListener('updatefound', () => {
+            const installing = reg.installing;
+            installing.addEventListener('statechange', () => {
+              if (installing.state === 'activated') {
+                showToast('应用已缓存，可离线使用');
+              }
+            });
+          });
+        })
+        .catch(err => {
+          console.error('Service Worker 注册失败:', err);
+          showToast('Service Worker 注册失败: ' + err.message);
+        });
+    }, 500);
+  });
 }
 
 // ========== 轻提示 Toast ==========
