@@ -296,7 +296,7 @@
 </div>
 
 <script>
-// 临时诊断：显示网络和 SW 状态
+// ========== 诊断：网络与 SW 状态 ==========
 window.addEventListener('load', () => {
   const status = document.createElement('div');
   status.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff0;color:#000;z-index:9999;padding:4px;text-align:center;font-size:12px;';
@@ -307,20 +307,21 @@ window.addEventListener('load', () => {
     status.textContent += ' | SW 未激活';
   }
   document.body.appendChild(status);
+  // 10秒后自动隐藏诊断条
+  setTimeout(() => { status.style.display = 'none'; }, 10000);
 });
-  
-// ========== Service Worker 注册（使用独立的 sw.js 文件） ==========
+
+// ========== Service Worker 注册 ==========
 if ('serviceWorker' in navigator) {
-  // 先注销所有旧 SW，避免冲突
+  // 先注销所有旧 SW
   navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(reg => reg.unregister());
+    return Promise.all(regs.map(reg => reg.unregister()));
   }).then(() => {
-    // 延迟 500ms 后注册新 SW，确保旧 SW 完全卸载
+    // 延迟注册新 SW
     setTimeout(() => {
-      navigator.serviceWorker.register('./sw.js', { scope: '/' })
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
         .then(reg => {
           console.log('Service Worker 注册成功，作用域:', reg.scope);
-          // 监听更新
           reg.addEventListener('updatefound', () => {
             const installing = reg.installing;
             installing.addEventListener('statechange', () => {
@@ -332,13 +333,13 @@ if ('serviceWorker' in navigator) {
         })
         .catch(err => {
           console.error('Service Worker 注册失败:', err);
-          showToast('Service Worker 注册失败: ' + err.message);
+          showToast('SW 注册失败: ' + err.message);
         });
     }, 500);
   });
 }
 
-// ========== 轻提示 Toast ==========
+// ========== 轻提示 ==========
 function showToast(msg) {
   let toast = document.getElementById('appToast');
   if (!toast) {
@@ -353,9 +354,8 @@ function showToast(msg) {
   toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
-// ========== 核心修复：从后台恢复时自动刷新页面 ==========
+// ========== 后台恢复刷新 ==========
 window.addEventListener('pageshow', function(event) {
-  // event.persisted 为 true 表示页面是从 bfcache 中恢复的
   if (event.persisted) {
     window.location.reload();
   }
