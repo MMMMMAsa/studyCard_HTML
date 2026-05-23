@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>莱特纳盒子 · 使用手册</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f0eb; color: #3e3a37;
+      padding: 20px 16px 40px; line-height: 1.7;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { text-align: center; font-size: 2rem; color: #5e4b3c; margin-bottom: 20px; }
+    h2 { font-size: 1.4rem; color: #5e4b3c; margin: 24px 0 12px; border-bottom: 2px solid #b89b7b; padding-bottom: 4px; }
+    h3 { font-size: 1.1rem; color: #6b5a46; margin: 16px 0 8px; }
+    p, li { font-size: 0.95rem; margin-bottom: 10px; }
+    ul, ol { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    .tip {
+      background: #fffbf4; border-left: 4px solid #b89b7b;
+      padding: 12px 16px; border-radius: 0 12px 12px 0; margin: 16px 0;
+    }
+    .faq { background: #ffffffec; border-radius: 16px; padding: 16px; margin: 10px 0; }
+    .back-link { display: block; text-align: center; margin-top: 30px; color: #b89b7b; text-decoration: none; font-weight: 600; }
+
+    /* 资助板块 */
+    .donate-section {
+      margin-top: 32px; padding-top: 20px;
+      border-top: 1px solid #e8dfd4; text-align: center;
+    }
+    .donate-title { font-size: 1rem; color: #5e4b3c; margin-bottom: 8px; font-weight: 600; }
+    .donate-desc { font-size: 0.85rem; color: #8b7a65; margin-bottom: 16px; }
+    .donate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 300px; margin: 0 auto 16px; }
+    .donate-card {
+      background: #faf7f2; border-radius: 16px; padding: 12px 8px;
+      text-align: center; border: 1px solid #e8dfd4; cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .donate-card:active { border-color: #b89b7b; }
+    .donate-amount { font-size: 1.3rem; font-weight: 700; color: #b89b7b; }
+    .donate-label { font-size: 0.75rem; color: #8b7a65; margin-top: 2px; }
+    .donate-qr { display: flex; justify-content: center; gap: 16px; margin-top: 8px; }
+    .qr-item { text-align: center; }
+    .qr-placeholder {
+      width: 100px; height: 100px; background: #f0e8dc;
+      border-radius: 16px; display: flex; align-items: center;
+      justify-content: center; font-size: 2.5rem; margin-bottom: 4px;
+    }
+    .qr-label { font-size: 0.75rem; color: #8b7a65; }
+    .donate-note { font-size: 0.72rem; color: #b7a797; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>📦 莱特纳盒子 使用手册</h1>
+
+  <h2>1. 这是什么？</h2>
+  <p>莱特纳盒子是一个基于<strong>间隔重复原理</strong>的记忆工具，帮助你用最少的时间记住最多的知识。它模仿了纸质闪卡，但会自动帮你安排复习时间，你只需要每天花几分钟复习到期的卡片。</p>
+
+  <h2>2. 核心概念：莱特纳盒子法</h2>
+  <p>所有的卡片被分为5个虚拟“盒子”，每个盒子对应不同的复习间隔：</p>
+  <ul>
+    <li>📦 盒子1：每天复习</li>
+    <li>📦 盒子2：隔1天复习</li>
+    <li>📦 盒子3：隔3天复习</li>
+    <li>📦 盒子4：隔7天复习</li>
+    <li>📦 盒子5：隔14天复习</li>
+  </ul>
+  <p>复习时，如果你<strong>记住了</strong>卡片，它就会升到下一个盒子（间隔更长）；如果你<strong>没记住</strong>，它会掉回盒子1，重新开始。这样，你总是在遗忘的临界点进行复习，效果最好。</p>
+
+  <h2>3. 界面介绍</h2>
+  <h3>3.1 复习页</h3>
+  <p>顶部有5个彩色小方块，代表5个盒子，当前复习的卡片所在盒子会高亮。</p>
+  <p>中间是一张卡片，显示<strong>问题</strong>。点击卡片会翻转，显示<strong>答案</strong>。</p>
+  <p>翻看答案后，根据你的掌握情况，点击“记住了”或“没记住”，卡片会自动移动到合适的盒子并更新下次复习时间。</p>
+  <p>最下面是添加新卡片的输入框。</p>
+
+  <h3>3.2 卡片库</h3>
+  <p>点击底部导航栏的“卡片库”，可以看到所有你创建的卡片，包括它们所在的盒子和下次复习日期。</p>
+  <p>在这里你可以<strong>编辑</strong>或<strong>删除</strong>卡片，也可以<strong>导出</strong>备份或<strong>导入</strong>别人分享的卡片包。</p>
+  <p>还可以开启<strong>自动备份</strong>，设置间隔（天/周/月），程序会定时将备份文件下载到你的设备。</p>
+
+  <h2>4. 快速上手步骤</h2>
+  <ol>
+    <li><strong>添加卡片</strong>：在复习页底部输入“问题”和“答案”，点击“添加卡片”。</li>
+    <li><strong>开始复习</strong>：程序会自动展示一张到期的卡片。点击卡片翻转查看答案，然后选择“记住了”或“没记住”。</li>
+    <li><strong>坚持每天打开</strong>：每天花5-10分钟复习到期的卡片，不要积压。</li>
+    <li><strong>管理卡片</strong>：定期去卡片库整理不需要的卡片，导出备份保证数据安全。</li>
+  </ol>
+
+  <div class="tip">
+    💡 <strong>小贴士</strong>：建议在卡片里写上简短的答案，方便快速回忆。对于复杂的知识点，可以拆成多张卡片。
+  </div>
+
+  <h2>5. 常见问题</h2>
+  <div class="faq">
+    <strong>Q: 数据存在哪里？安全吗？</strong><br>
+    A: 所有数据只存储在你的手机浏览器本地（localStorage），不会上传到任何服务器。换手机时可以通过导出/导入功能迁移数据。
+  </div>
+  <div class="faq">
+    <strong>Q: 能离线使用吗？</strong><br>
+    A: 可以！当你第一次访问后，浏览器会自动缓存应用，之后即使断网也能正常复习。如果从桌面 PWA 图标打开，离线也能用。
+  </div>
+  <div class="faq">
+    <strong>Q: 如何把应用放到手机桌面？</strong><br>
+    A: iPhone：用 Safari 打开，点底部分享图标 → “添加到主屏幕”。<br>
+    Android：用 Chrome 打开，点右上角 ⋮ → “添加到主屏幕”。
+  </div>
+  <div class="faq">
+    <strong>Q: 卡片太多怎么办？</strong><br>
+    A: 可以定期导出备份，然后在卡片库中批量删除不再需要的卡片。合并导入功能可以避免重复卡片。
+  </div>
+
+  <!-- 资助板块 -->
+  <div class="donate-section">
+    <p class="donate-title">☕ 资助开发者</p>
+    <p class="donate-desc">如果这个工具帮助你提升了学习效率，欢迎请我喝杯咖啡 ☕</p>
+    <div class="donate-grid">
+      <div class="donate-card" onclick="alert('感谢支持！请扫描下方收款码 ❤️')">
+        <div class="donate-amount">☕ ¥5</div>
+        <div class="donate-label">一杯咖啡</div>
+      </div>
+      <div class="donate-card" onclick="alert('感谢支持！请扫描下方收款码 ❤️')">
+        <div class="donate-amount">🍵 ¥10</div>
+        <div class="donate-label">一杯奶茶</div>
+      </div>
+      <div class="donate-card" onclick="alert('感谢支持！请扫描下方收款码 ❤️')">
+        <div class="donate-amount">🍜 ¥20</div>
+        <div class="donate-label">一顿简餐</div>
+      </div>
+      <div class="donate-card" onclick="alert('感谢支持！任意金额都是鼓励 ❤️')">
+        <div class="donate-amount">🎁 随意</div>
+        <div class="donate-label">心意无价</div>
+      </div>
+    </div>
+    <div class="donate-qr">
+      <div class="qr-item">
+        <div class="qr-placeholder">💚</div>
+        <div class="qr-label">微信</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-placeholder">💙</div>
+        <div class="qr-label">支付宝</div>
+      </div>
+    </div>
+    <p class="donate-note">将占位图替换为你的真实收款码<br>每一份支持都是开源的动力 ❤️</p>
+  </div>
+
+  <a href="index.html" class="back-link">← 返回应用</a>
+</div>
+</body>
+</html>

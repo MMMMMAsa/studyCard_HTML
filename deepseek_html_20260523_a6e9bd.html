@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>莱特纳盒子 - 科学记忆，告别遗忘</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f0eb 0%, #ede4d6 100%);
+      min-height: 100vh;
+      display: flex; justify-content: center; align-items: center;
+      padding: 20px; color: #3e3a37;
+    }
+    .card {
+      background: #ffffffec; backdrop-filter: blur(12px);
+      border-radius: 32px; padding: 30px 24px;
+      max-width: 420px; width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    .icon { font-size: 72px; margin-bottom: 16px; }
+    h1 { font-size: 2rem; color: #4d3e2f; margin-bottom: 8px; }
+    .sub { color: #8b7a65; font-size: 1rem; margin-bottom: 24px; }
+    .highlight { color: #b89b7b; font-weight: 700; }
+    .feature-list { text-align: left; margin: 0 auto 24px; max-width: 300px; }
+    .feature-list li { margin: 8px 0; font-size: 0.95rem; }
+    .cta-btn {
+      display: block; background: #b89b7b; color: white;
+      padding: 14px 28px; border-radius: 40px; font-weight: 700;
+      font-size: 1.1rem; text-decoration: none; margin: 16px 0;
+      box-shadow: 0 8px 24px rgba(184,155,123,0.35);
+      transition: transform 0.2s;
+    }
+    .cta-btn:active { transform: scale(0.97); }
+    .testimonial {
+      background: #faf7f2; border-radius: 16px; padding: 16px;
+      margin-top: 20px; font-size: 0.9rem; color: #5e4b3c;
+      font-style: italic; position: relative;
+    }
+    .testimonial::before { content: "“"; font-size: 2rem; color: #b89b7b; position: absolute; top: -10px; left: 10px; }
+    .testimonial-author { font-style: normal; font-weight: 600; color: #b89b7b; margin-top: 8px; }
+    .footer-text { font-size: 0.75rem; color: #bfb2a2; margin-top: 24px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">📦</div>
+  <h1>莱特纳盒子</h1>
+  <p class="sub">基于<span class="highlight">间隔重复</span>的科学记忆工具<br>帮你用最少的时间，记住最多的知识</p>
+
+  <ul class="feature-list">
+    <li>✅ 自动安排复习，无需手动规划</li>
+    <li>✅ 5级盒子算法，精准打击遗忘</li>
+    <li>✅ 支持卡片导入/导出，永久免费</li>
+    <li>✅ 可离线使用，像手机 App 一样</li>
+    <li>✅ 数据仅存本机，隐私无忧</li>
+  </ul>
+
+  <!-- 请将下面的链接替换为你的实际网址 -->
+  <a href="https://你的用户名.github.io/studyCard_HTML/" class="cta-btn">🚀 立即开始使用</a>
+  <p style="font-size:0.85rem; color:#8b7a65;">无需下载，浏览器打开即用</p>
+
+  <div class="testimonial">
+    “用了莱特纳盒子来背医学名词，记忆效率明显提高。最棒的是每天打开它已经成了习惯，再也不用担心忘记复习了。”
+    <div class="testimonial-author">—— 医学生小陈</div>
+  </div>
+
+  <div class="footer-text">
+    分享给朋友，一起高效学习 📤<br>
+    使用手册：<a href="https://你的用户名.github.io/studyCard_HTML/guide.html" style="color:#b89b7b;">guide.html</a>
+  </div>
+</div>
+</body>
+</html>
