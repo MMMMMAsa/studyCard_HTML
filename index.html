@@ -296,7 +296,7 @@
 </div>
 
 <script>
-// ========== Service Worker 注册（使用独立 sw.js 文件） ==========
+// ========== Service Worker 注册（使用独立的 sw.js 文件） ==========
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js', { scope: '/' })
     .then(reg => console.log('Service Worker 注册成功，作用域:', reg.scope))
@@ -317,6 +317,14 @@ function showToast(msg) {
   clearTimeout(toast._timeout);
   toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
 }
+
+// ========== 核心修复：从后台恢复时自动刷新页面 ==========
+window.addEventListener('pageshow', function(event) {
+  // event.persisted 为 true 表示页面是从 bfcache 中恢复的
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
 </script>
 
 <script>
@@ -598,14 +606,6 @@ function showToast(msg) {
   renderLibrary();
   updateBackupDisplay();
   if(autoBackupEnabled) scheduleBackup();
-    
-  // 修复从后台恢复后页面无反应
-  window.addEventListener('pageshow', function(event) {
-    if (event.persisted) {
-      window.location.reload();
-    }    
-  });
-  
 })();
 </script>
 </body>
