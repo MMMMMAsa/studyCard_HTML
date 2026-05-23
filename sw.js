@@ -51,3 +51,10 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+// 接收主页面发来的 SKIP_WAITING 消息，立即激活
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
