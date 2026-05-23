@@ -598,6 +598,14 @@ function showToast(msg) {
   renderLibrary();
   updateBackupDisplay();
   if(autoBackupEnabled) scheduleBackup();
+    
+  // 修复从后台恢复后页面无反应
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      window.location.reload();
+    }    
+  });
+  
 })();
 </script>
 </body>
