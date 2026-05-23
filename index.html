@@ -296,6 +296,19 @@
 </div>
 
 <script>
+// 临时诊断：显示网络和 SW 状态
+window.addEventListener('load', () => {
+  const status = document.createElement('div');
+  status.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff0;color:#000;z-index:9999;padding:4px;text-align:center;font-size:12px;';
+  status.textContent = navigator.onLine ? '在线' : '离线';
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    status.textContent += ' | SW 已激活';
+  } else {
+    status.textContent += ' | SW 未激活';
+  }
+  document.body.appendChild(status);
+});
+  
 // ========== Service Worker 注册（使用独立的 sw.js 文件） ==========
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js', { scope: '/' })
