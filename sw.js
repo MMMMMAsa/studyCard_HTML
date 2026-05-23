@@ -1,14 +1,13 @@
-const CACHE_NAME = 'leitner-v5';
-
-// 主页面 URL：这里假设你的主页面是 index.html
-const MAIN_PAGE = self.location.origin + '/studyCard_HTML/index.html';
-// 如果你的仓库名就是 leitner，且主页面在根目录，请按实际情况调整
+// sw.js
+const CACHE_NAME = 'leitner-v6';
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.add(MAIN_PAGE).catch(err => {
-        console.warn('预缓存失败:', err);
+      // 直接缓存'/'（根路径），GitHub Pages 下会自动返回 index.html
+      return cache.add('/').catch(err => {
+        // 如果失败，尝试缓存 './'
+        return cache.add('./');
       });
     }).then(() => self.skipWaiting())
   );
@@ -35,8 +34,8 @@ self.addEventListener('fetch', event => {
         }
         return response;
       }).catch(() => {
-        // 离线且无缓存时，返回主页面
-        return caches.match(MAIN_PAGE);
+        // 无网络且无缓存时，返回缓存的根页面
+        return caches.match('/') || caches.match('./');
       });
     })
   );
