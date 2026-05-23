@@ -304,33 +304,31 @@
 </div>
 
 <script>
-// ========== Service Worker 注册（静默更新，防循环刷新） ==========
+// ========== Service Worker 注册（防循环刷新，离线安全） ==========
 if ('serviceWorker' in navigator) {
-  // 检查是否是刚由 SW 更新触发的刷新，如果是则不再重复刷新
+  // 检查是否因 SW 更新刚刷新过，避免循环
   const hasUpdated = sessionStorage.getItem('sw_updated');
   if (hasUpdated) {
     sessionStorage.removeItem('sw_updated');
+    // 不重复注册，直接继续
   } else {
-    // 先注销所有旧 SW
+    // 先清理旧 SW
     navigator.serviceWorker.getRegistrations().then(regs => {
       return Promise.all(regs.map(reg => reg.unregister()));
     }).then(() => {
-      const swUrl = './sw.js?v=' + Date.now();
-
-      navigator.serviceWorker.register(swUrl, { scope: './' })
+      // 注册 SW，不加时间戳以避免每次都重新下载（浏览器会24h检查更新）
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
         .then(reg => {
           console.log('SW 注册成功');
-
-          // 如果已有等待中的新 SW，直接激活
+          // 如果已有等待中的新 SW，发送激活消息
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
-
+          // 监听新 SW 安装
           reg.addEventListener('updatefound', () => {
             const installing = reg.installing;
             installing.addEventListener('statechange', () => {
               if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                // 新 SW 已安装，通知激活
                 installing.postMessage({ type: 'SKIP_WAITING' });
               }
             });
@@ -339,7 +337,7 @@ if ('serviceWorker' in navigator) {
         .catch(err => console.error('SW 注册失败:', err));
     });
 
-    // 监听 controllerchange，自动刷新页面（只执行一次）
+    // 页面接管后刷新一次（仅一次）
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!refreshing) {
@@ -350,7 +348,6 @@ if ('serviceWorker' in navigator) {
     });
   }
 }
-
 // ========== 轻提示 ==========
 function showToast(msg) {
   let toast = document.getElementById('appToast');
