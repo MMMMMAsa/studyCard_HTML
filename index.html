@@ -304,45 +304,51 @@
 </div>
 
 <script>
-// ========== Service Worker 注册（自动静默更新） ==========
+// ========== Service Worker 注册（静默更新，防循环刷新） ==========
 if ('serviceWorker' in navigator) {
-  // 先注销所有旧 SW，避免冲突
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    return Promise.all(regs.map(reg => reg.unregister()));
-  }).then(() => {
-    // 生成版本号，强制刷新 sw.js（每次页面加载时检查更新）
-    const swUrl = './sw.js?v=' + Date.now();
-    
-    navigator.serviceWorker.register(swUrl, { scope: './' })
-      .then(reg => {
-        console.log('Service Worker 注册成功，作用域:', reg.scope);
+  // 检查是否是刚由 SW 更新触发的刷新，如果是则不再重复刷新
+  const hasUpdated = sessionStorage.getItem('sw_updated');
+  if (hasUpdated) {
+    sessionStorage.removeItem('sw_updated');
+  } else {
+    // 先注销所有旧 SW
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      return Promise.all(regs.map(reg => reg.unregister()));
+    }).then(() => {
+      const swUrl = './sw.js?v=' + Date.now();
 
-        // 如果已有等待中的新 SW 或正在安装
-        if (reg.waiting) {
-          // 直接通知等待中的 SW 立即激活
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
+      navigator.serviceWorker.register(swUrl, { scope: './' })
+        .then(reg => {
+          console.log('SW 注册成功');
 
-        // 监听新 SW 的安装过程
-        reg.addEventListener('updatefound', () => {
-          const installing = reg.installing;
-          installing.addEventListener('statechange', () => {
-            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-              // 新 SW 已安装，通知它跳过等待，立即激活
-              installing.postMessage({ type: 'SKIP_WAITING' });
-            }
+          // 如果已有等待中的新 SW，直接激活
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+
+          reg.addEventListener('updatefound', () => {
+            const installing = reg.installing;
+            installing.addEventListener('statechange', () => {
+              if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                // 新 SW 已安装，通知激活
+                installing.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
           });
-        });
+        })
+        .catch(err => console.error('SW 注册失败:', err));
+    });
 
-        // 当新的 SW 接管页面后，自动刷新页面
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          window.location.reload();
-        });
-      })
-      .catch(err => {
-        console.error('Service Worker 注册失败:', err);
-      });
-  });
+    // 监听 controllerchange，自动刷新页面（只执行一次）
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        sessionStorage.setItem('sw_updated', '1');
+        window.location.reload();
+      }
+    });
+  }
 }
 
 // ========== 轻提示 ==========
