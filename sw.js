@@ -1,7 +1,7 @@
 const CACHE_NAME = 'leitner-v5';
 
 // 主页面 URL：这里假设你的主页面是 index.html
-const MAIN_PAGE = self.location.origin + '/leitner/index.html';
+const MAIN_PAGE = self.location.origin + '/studyCard_HTML/index.html';
 // 如果你的仓库名就是 leitner，且主页面在根目录，请按实际情况调整
 
 self.addEventListener('install', event => {
