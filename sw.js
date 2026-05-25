@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'leitner-v9';
+const CACHE_NAME = 'leitner-v-CACHE_VERSION_PLACEHOLDER';
 
 // 主页面 URL
 const MAIN_PAGE = new URL('./index.html', self.location.href).href;
