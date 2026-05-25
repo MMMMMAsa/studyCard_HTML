@@ -59,6 +59,8 @@
     }
     .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; }
 
+    /* 头部及进度条 */
+    .header-wrapper { display: flex; flex-direction: column; gap: 8px; }
     .header {
       display: flex; align-items: center; justify-content: space-between;
       background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -74,6 +76,10 @@
       font-size: 12px; font-weight: 700; color: var(--text-sub); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
     .box-dot.active { background: var(--primary); color: white; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(184, 155, 123, 0.4); }
+    
+    .progress-container { width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s ease; }
+    .progress-text { font-size: 0.75rem; color: var(--text-sub); text-align: right; margin-top: -4px; padding-right: 4px; }
 
     .page { display: none; animation: fadeIn 0.3s ease; }
     .page.active { display: flex; flex-direction: column; gap: 20px; }
@@ -96,7 +102,6 @@
     .card-back { transform: rotateY(180deg); background: var(--card-back-bg); border-color: var(--border-color); }
     .card-icon { position: absolute; top: 24px; opacity: 0.1; color: var(--primary); width: 48px; height: 48px; pointer-events: none; }
     
-    /* 长文本防溢出及自定义滚动条保护 */
     .card-question, .card-answer {
       width: 100%; max-height: 140px; overflow-y: auto; overflow-x: hidden;
       padding: 0 8px; z-index: 1; word-break: break-word; line-height: 1.5;
@@ -109,7 +114,8 @@
     
     .card-hint { position: absolute; bottom: 20px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 4px; pointer-events: none; }
 
-    .action-row { display: flex; gap: 12px; justify-content: center; }
+    .action-row { display: flex; gap: 12px; justify-content: center; flex-direction: column; }
+    .action-row .buttons { display: flex; gap: 12px; width: 100%; }
     .btn {
       background: var(--card-bg); border: 1px solid var(--glass-border); padding: 14px 24px; border-radius: 20px;
       font-size: 1.05rem; font-weight: 600; color: var(--text-main);
@@ -123,6 +129,8 @@
     .btn.small { padding: 10px 16px; font-size: 0.9rem; border-radius: 16px; }
     .btn.icon-only { padding: 10px; border-radius: 14px; }
     .btn.danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-bg); box-shadow: none; }
+    .keyboard-hint { font-size: 0.75rem; color: var(--text-sub); text-align: center; opacity: 0.6; display: none; }
+    @media (pointer: fine) { .keyboard-hint { display: block; } }
 
     .stats {
       background: var(--card-bg); border-radius: 20px; padding: 16px;
@@ -166,6 +174,7 @@
     }
     .card-item .meta-info { display: flex; align-items: center; gap: 6px; }
     .card-item .actions { display: flex; gap: 8px; }
+    
     .empty-message { text-align: center; color: var(--text-sub); padding: 40px; font-size: 0.95rem; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
     .toolbar { display: flex; gap: 12px; }
@@ -218,7 +227,8 @@
       background: rgba(62, 58, 55, 0.9); color: white; padding: 12px 24px;
       border-radius: 24px; font-size: 0.95rem; font-weight: 500; z-index: 40;
       opacity: 0; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); pointer-events: none;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px;
+      white-space: nowrap;
     }
     .app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
@@ -226,24 +236,29 @@
 </head>
 <body>
 <div class="app-container">
-  <div class="header">
-    <div class="header-title">
-      <svg class="header-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-      记忆盒
+  
+  <div class="header-wrapper">
+    <div class="header">
+      <div class="header-title">
+        <svg class="header-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        记忆盒
+      </div>
+      <div class="box-indicator" id="boxIndicator">
+        <span class="box-dot active">1</span><span class="box-dot">2</span><span class="box-dot">3</span><span class="box-dot">4</span><span class="box-dot">5</span>
+      </div>
     </div>
-    <div class="box-indicator" id="boxIndicator">
-      <span class="box-dot active">1</span><span class="box-dot">2</span><span class="box-dot">3</span><span class="box-dot">4</span><span class="box-dot">5</span>
-    </div>
+    <div class="progress-container"><div class="progress-bar" id="masteryProgress"></div></div>
+    <div class="progress-text" id="masteryText">整体熟练度 0%</div>
   </div>
 
   <div class="page active" id="reviewPage">
     <div class="card-container" id="cardContainer">
-      <div class="card" id="flashcard" onclick="flipCard()">
+      <div class="card" id="flashcard">
         <div class="card-face" id="cardFront">
           <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           <div class="card-question" id="questionText">获取题目中...</div>
           <span class="card-hint">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg> 点击翻转
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg> 点击翻转 (按空格键)
           </span>
         </div>
         <div class="card-face card-back" id="cardBack">
@@ -254,17 +269,26 @@
     </div>
     
     <div class="action-row" id="reviewActions" style="display: flex;">
-      <button class="btn outline wide" id="forgotBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> 没记住
-      </button>
-      <button class="btn primary wide" id="rememberedBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> 记住了
-      </button>
+      <div class="buttons">
+        <button class="btn outline wide" id="forgotBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> 没记住
+        </button>
+        <button class="btn primary wide" id="rememberedBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> 记住了
+        </button>
+      </div>
+      <div class="keyboard-hint">快捷键：[⬅] 记错 &nbsp; [➡] 记对</div>
     </div>
+    
     <div class="action-row" id="emptyActions" style="display:none;">
-      <button class="btn primary wide" id="startReviewBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> 刷新再看
-      </button>
+      <div class="buttons">
+        <button class="btn outline wide" onclick="switchPage('library')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> 去卡片库
+        </button>
+        <button class="btn primary wide" id="startReviewBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> 强制刷新
+        </button>
+      </div>
     </div>
 
     <div class="stats" id="statsRow">
@@ -341,7 +365,7 @@
 </div>
 
 <div class="bottom-nav">
-  <button class="nav-item active" id="navReview" onclick="switchPage('review')">
+  <button class="nav-item" id="navReview" onclick="switchPage('review')">
     <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
     复习
   </button>
@@ -383,39 +407,40 @@ if ('serviceWorker' in navigator) {
   if (hasUpdated) {
     sessionStorage.removeItem('sw_updated');
   } else {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      return Promise.all(regs.map(reg => reg.unregister()));
-    }).then(() => {
-      navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => {
-          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          reg.addEventListener('updatefound', () => {
-            const installing = reg.installing;
-            installing.addEventListener('statechange', () => {
-              if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                installing.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          });
-        }).catch(err => console.error('SW 注册失败:', err));
-    });
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      reg.addEventListener('updatefound', () => {
+        const installing = reg.installing;
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            installing.postMessage({ type: 'SKIP_WAITING' });
+            showToast('发现新版本，正在为您更新应用...', 3000);
+          }
+        });
+      });
+    }).catch(err => console.error('SW 注册失败:', err));
+    
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!refreshing) {
         refreshing = true;
         sessionStorage.setItem('sw_updated', '1');
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 1500);
       }
     });
   }
 }
 
-function showToast(msg) {
+function showToast(msg, duration = 2000) {
   let toast = document.getElementById('appToast');
   toast.textContent = msg;
   toast.classList.add('show');
   clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
+  toast._timeout = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+function triggerVibrate(ms = 30) {
+  if (navigator.vibrate) navigator.vibrate(ms);
 }
 
 window.addEventListener('pageshow', function(event) {
@@ -432,7 +457,7 @@ window.addEventListener('pageshow', function(event) {
   let isFlipped = false;
   let editingCardId = null;
   let pendingImportCards = [];
-  let autoBackupTimer = null;
+  let autoBackupTimer = null; // Changed usage to setInterval
   let autoBackupEnabled = false;
   let backupIntervalNum = 1;
   let backupIntervalUnit = 'day';
@@ -451,6 +476,12 @@ window.addEventListener('pageshow', function(event) {
     cards.forEach(x => { if(x.box>=1&&x.box<=5) c[x.box]++; });
     for(let b=1;b<=5;b++) document.getElementById('box'+b+'Count').textContent = c[b];
     document.getElementById('totalCount').textContent = `(${cards.length})`;
+    
+    // 更新全局熟练度 (除阶段 1 之外的卡片占比)
+    let total = cards.length;
+    let mastery = total === 0 ? 0 : Math.round(((total - c[1]) / total) * 100);
+    document.getElementById('masteryProgress').style.width = mastery + '%';
+    document.getElementById('masteryText').textContent = `整体熟练度 ${mastery}%`;
   }
 
   function getDue() {
@@ -465,8 +496,8 @@ window.addEventListener('pageshow', function(event) {
 
   function displayCard(card) {
     if (!card) {
-      document.getElementById('questionText').textContent = '今日复习已完成';
-      document.getElementById('answerText').textContent = '去添加新卡片或等待到期';
+      document.getElementById('questionText').textContent = '今日复习已完成 ✨';
+      document.getElementById('answerText').textContent = '';
       document.getElementById('flashcard').classList.remove('flipped');
       document.getElementById('reviewActions').style.display = 'none';
       document.getElementById('emptyActions').style.display = 'flex';
@@ -483,7 +514,6 @@ window.addEventListener('pageshow', function(event) {
     document.getElementById('emptyActions').style.display = 'none';
     document.querySelectorAll('.box-dot').forEach((d,i)=>d.classList.toggle('active',i+1===card.box));
     
-    // 每次显示新卡片时，将长文本的滚动条重置到最顶部
     document.getElementById('questionText').scrollTop = 0;
     document.getElementById('answerText').scrollTop = 0;
   }
@@ -492,39 +522,48 @@ window.addEventListener('pageshow', function(event) {
     const card = cards.find(c=>c.id===id);
     if(!card) return;
     card.box = newBox;
-    const d = new Date(); d.setDate(d.getDate() + BOX_INTERVALS[newBox-1]);
+    
+    // 核心日期 Bug 修复：时间抹平到当天的 00:00:00，防止出现差几小时导致的"晚一天"误判
+    const d = new Date();
+    d.setHours(0, 0, 0, 0); 
+    d.setDate(d.getDate() + BOX_INTERVALS[newBox-1]);
+    
     card.nextReview = d.toISOString();
     save(); updateStats();
   }
 
   function loadNext() { displayCard(pickRandom()); }
 
-  window.flipCard = function(e) {
-    // 如果用户是在滑动卡片内部的滚动条，阻止翻转操作
-    if (e && (e.target.id === 'questionText' || e.target.id === 'answerText')) {
-      const el = e.target;
-      if (el.scrollHeight > el.clientHeight) return; 
-    }
+  window.flipCard = function() {
     if(!currentCardId) return;
     isFlipped = !isFlipped;
+    triggerVibrate(20);
     document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
   };
 
-  // 绑定带事件参数的翻转
-  document.getElementById('flashcard').onclick = function(e) { flipCard(e); };
+  // 防误触：手指滑动超出阈值时，取消点击翻转判定
+  const fc = document.getElementById('flashcard');
+  let startY = 0, isScrolling = false;
+  fc.addEventListener('touchstart', e => { startY = e.touches[0].clientY; isScrolling = false; }, {passive: true});
+  fc.addEventListener('touchmove', e => { if(Math.abs(e.touches[0].clientY - startY) > 10) isScrolling = true; }, {passive: true});
+  fc.addEventListener('click', e => { if(!isScrolling) flipCard(); });
 
   document.getElementById('rememberedBtn').onclick = ()=>{
     if(!currentCardId) return;
+    triggerVibrate(40);
     moveCard(currentCardId, Math.min((cards.find(c=>c.id===currentCardId)?.box||1)+1, MAX_BOX));
     loadNext();
   };
   document.getElementById('forgotBtn').onclick = ()=>{
     if(!currentCardId) return;
+    triggerVibrate(60);
     moveCard(currentCardId, 1);
     loadNext();
   };
-  document.getElementById('startReviewBtn').onclick = ()=> loadNext();
+  document.getElementById('startReviewBtn').onclick = ()=>{ triggerVibrate(30); loadNext(); };
+  
   document.getElementById('addCardBtn').onclick = ()=>{
+    triggerVibrate(30);
     const q = document.getElementById('newQuestion').value.trim();
     const a = document.getElementById('newAnswer').value.trim();
     if(!q||!a) return showToast('请填写完整问题和答案');
@@ -536,6 +575,19 @@ window.addEventListener('pageshow', function(event) {
     renderLibrary();
     showToast('卡片已添加');
   };
+
+  // 键盘快捷键监听 (针对电脑端)
+  window.addEventListener('keydown', (e) => {
+    // 确保用户没有在输入框里打字
+    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+    if (!currentCardId) return;
+    
+    if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+    if (isFlipped) {
+      if (e.code === 'ArrowRight') { e.preventDefault(); document.getElementById('rememberedBtn').click(); }
+      if (e.code === 'ArrowLeft') { e.preventDefault(); document.getElementById('forgotBtn').click(); }
+    }
+  });
 
   function renderLibrary() {
     const el = document.getElementById('cardList');
@@ -614,7 +666,7 @@ window.addEventListener('pageshow', function(event) {
     a.click();
     localStorage.setItem('leitner_last_backup', now.toISOString());
     updateBackupDisplay();
-    showToast('备份文件已下载');
+    showToast('自动备份文件已生成');
   }
   function S(n) { return String(n).padStart(2,'0'); }
 
@@ -624,22 +676,23 @@ window.addEventListener('pageshow', function(event) {
     el.textContent = last ? `上次备份：${new Date(last).toLocaleDateString('zh-CN')} ${new Date(last).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}` : '上次备份：从未';
   }
 
-  function scheduleBackup() {
-    clearTimeout(autoBackupTimer);
+  // Bug修复：彻底干掉 setTimeout 产生的溢出无限下载问题，改为轮询检测
+  function checkBackup() {
     if(!autoBackupEnabled) return;
     const last = localStorage.getItem('leitner_last_backup');
     const now = Date.now();
     const interval = getIntervalMs();
-    let next = last ? new Date(last).getTime() + interval : now + interval;
-    if(next <= now) { downloadBackup(); next = now + interval; }
-    autoBackupTimer = setTimeout(()=>{ downloadBackup(); scheduleBackup(); }, next - now);
+    if (!last || now - new Date(last).getTime() >= interval) {
+      downloadBackup();
+    }
   }
 
   document.getElementById('autoBackupToggle').onchange = function() {
+    triggerVibrate(20);
     autoBackupEnabled = this.checked;
     document.getElementById('intervalRow').style.display = autoBackupEnabled?'flex':'none';
     localStorage.setItem('leitner_auto_backup', autoBackupEnabled);
-    autoBackupEnabled ? scheduleBackup() : clearTimeout(autoBackupTimer);
+    if(autoBackupEnabled) checkBackup();
     showToast(autoBackupEnabled ? '已开启自动备份' : '已关闭自动备份');
   };
 
@@ -647,19 +700,19 @@ window.addEventListener('pageshow', function(event) {
     backupIntervalNum = Math.max(1,Math.min(365,parseInt(this.value)||1));
     this.value = backupIntervalNum;
     localStorage.setItem('leitner_backup_num', backupIntervalNum);
-    if(autoBackupEnabled) scheduleBackup();
+    if(autoBackupEnabled) checkBackup();
   };
 
   document.getElementById('backupIntervalUnit').onchange = function() {
     backupIntervalUnit = this.value;
     localStorage.setItem('leitner_backup_unit', backupIntervalUnit);
-    if(autoBackupEnabled) scheduleBackup();
+    if(autoBackupEnabled) checkBackup();
   };
 
-  document.getElementById('backupNowBtn').onclick = ()=>{ downloadBackup(); if(autoBackupEnabled) scheduleBackup(); };
-  document.getElementById('exportBtn').onclick = ()=>{ downloadBackup(); if(autoBackupEnabled) scheduleBackup(); };
+  document.getElementById('backupNowBtn').onclick = ()=>{ triggerVibrate(20); downloadBackup(); };
+  document.getElementById('exportBtn').onclick = ()=>{ triggerVibrate(20); downloadBackup(); };
 
-  document.getElementById('importBtn').onclick = ()=> document.getElementById('importFile').click();
+  document.getElementById('importBtn').onclick = ()=> { triggerVibrate(20); document.getElementById('importFile').click(); };
   document.getElementById('importFile').onchange = function(e) {
     const file = e.target.files[0]; if(!file) return;
     const reader = new FileReader();
@@ -694,13 +747,16 @@ window.addEventListener('pageshow', function(event) {
   };
 
   window.switchPage = function(p) {
+    triggerVibrate(20);
     document.getElementById('reviewPage').classList.toggle('active',p==='review');
     document.getElementById('libraryPage').classList.toggle('active',p==='library');
     document.getElementById('navReview').classList.toggle('active',p==='review');
     document.getElementById('navLibrary').classList.toggle('active',p==='library');
+    localStorage.setItem('leitner_last_tab', p); // 状态记忆
     if(p==='library') renderLibrary();
   };
 
+  // 初始化设置与备份轮询
   autoBackupEnabled = localStorage.getItem('leitner_auto_backup')==='true';
   backupIntervalNum = parseInt(localStorage.getItem('leitner_backup_num'))||1;
   backupIntervalUnit = localStorage.getItem('leitner_backup_unit')||'day';
@@ -708,12 +764,21 @@ window.addEventListener('pageshow', function(event) {
   document.getElementById('backupIntervalNum').value = backupIntervalNum;
   document.getElementById('backupIntervalUnit').value = backupIntervalUnit;
   document.getElementById('intervalRow').style.display = autoBackupEnabled?'flex':'none';
+  
+  if (autoBackupEnabled) {
+    checkBackup();
+    setInterval(checkBackup, 60000); // 每分钟安静检查一次，再也不会卡死了
+  }
 
-  load(); updateStats();
+  load(); 
+  updateStats();
+  
+  // 恢复上次浏览的页面
+  const lastTab = localStorage.getItem('leitner_last_tab') || 'review';
+  switchPage(lastTab);
+  
   displayCard(pickRandom());
-  renderLibrary();
   updateBackupDisplay();
-  if(autoBackupEnabled) scheduleBackup();
 })();
 </script>
 </body>
