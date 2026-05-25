@@ -424,22 +424,51 @@
 <div id="appToast" class="app-toast"></div>
 
 <script>
-// ================= Service Worker 一键更新与手动检查 =================
+// ================= 前端秒级探针与 SW 逻辑 =================
 let newWorker;
+let hasPromptedUpdate = false; // 防止重复弹窗
+
+// 1. 前端秒级探针：无视浏览器缓存，直接请求服务器查看 sw.js 最新头部信息
+function checkForUpdateFast() {
+  if (hasPromptedUpdate) return;
+  
+  // 加上时间戳强制绕过浏览器缓存，发一个极轻量的 HEAD 请求
+  fetch('./sw.js?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+    .then(response => {
+      const serverLastModified = response.headers.get('Last-Modified');
+      const localLastModified = localStorage.getItem('sw_last_modified');
+
+      // 如果发现服务器时间比本地新，并且不是第一次访问
+      if (serverLastModified && localLastModified && serverLastModified !== localLastModified) {
+        hasPromptedUpdate = true;
+        showUpdateModal(); // 秒弹窗
+      }
+      // 保存最新的时间戳到本地
+      if (serverLastModified) {
+        localStorage.setItem('sw_last_modified', serverLastModified);
+      }
+    })
+    .catch(() => { /* 离线或无网状态，静默忽略 */ });
+}
+
+// 页面一打开，立刻执行一次轻量探测
+checkForUpdateFast();
+
+// 2. 常规的 Service Worker 注册与后台下载流程
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' }).then(reg => {
     reg.update();
 
     if (reg.waiting) {
       newWorker = reg.waiting;
-      showUpdateModal();
+      if (!hasPromptedUpdate) { hasPromptedUpdate = true; showUpdateModal(); }
     }
 
     reg.addEventListener('updatefound', () => {
       newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          showUpdateModal();
+          if (!hasPromptedUpdate) { hasPromptedUpdate = true; showUpdateModal(); }
         }
       });
     });
@@ -458,17 +487,25 @@ function showUpdateModal() {
   document.getElementById('updateAppModal').classList.remove('hidden');
 }
 
+// 一键更新按钮
 document.getElementById('confirmUpdateBtn').addEventListener('click', () => {
   triggerVibrate(30);
   const btn = document.getElementById('confirmUpdateBtn');
   btn.innerHTML = '正在更新...';
   btn.style.opacity = '0.7';
+  
   if (newWorker) {
+    // 后台已经下载好新文件了，直接要求接管
     newWorker.postMessage({ type: 'SKIP_WAITING' });
+  } else {
+    // 极端情况：探针发现了更新并弹了窗，但后台下载还没完，或者探针误报
+    // 强制清理本地数据（非localStorage）并硬刷新
+    caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
+      .then(() => window.location.reload(true));
   }
 });
 
-// 🌟 手动检查更新按钮逻辑
+// 手动检查更新按钮逻辑
 document.getElementById('checkUpdateBtn').onclick = () => {
   triggerVibrate(20);
   const btn = document.getElementById('checkUpdateBtn');
@@ -480,7 +517,6 @@ document.getElementById('checkUpdateBtn').onclick = () => {
     navigator.serviceWorker.ready.then(reg => {
       reg.update().then(() => {
         // 如果有更新，上面的 updatefound 会监听到并弹窗
-        // 延迟 1.5 秒恢复按钮，如果没有弹窗说明是最新版
         setTimeout(() => {
           btn.innerHTML = originalHTML;
           btn.style.opacity = '1';
