@@ -345,6 +345,14 @@
         <span class="stat-label" id="lastBackupText">上次备份：从未</span>
         <button class="btn outline small" id="backupNowBtn">立即备份</button>
       </div>
+      
+      <div class="settings-row" style="padding-top:12px; border-top:1px dashed var(--border-color);">
+        <span class="settings-label" style="font-size:0.85rem; color:var(--text-sub);">应用版本管理</span>
+        <button class="btn outline small" id="checkUpdateBtn" style="border-color: var(--primary); color: var(--primary);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          检查更新
+        </button>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -416,24 +424,20 @@
 <div id="appToast" class="app-toast"></div>
 
 <script>
-// ================= Service Worker 一键更新核心逻辑 =================
+// ================= Service Worker 一键更新与手动检查 =================
 let newWorker;
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' }).then(reg => {
-    // 强制每次打开页面时去服务器探测一下 sw.js 是否发生改变
     reg.update();
 
-    // 情况 1：如果有已经在后台排队等待更新的版本
     if (reg.waiting) {
       newWorker = reg.waiting;
       showUpdateModal();
     }
 
-    // 情况 2：刚好探测到新版本正在下载安装
     reg.addEventListener('updatefound', () => {
       newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
-        // 新版本下载完毕，正处于 installed（等待接管）状态
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
           showUpdateModal();
         }
@@ -441,7 +445,6 @@ if ('serviceWorker' in navigator) {
     });
   }).catch(err => console.error('SW 注册失败:', err));
   
-  // 监听接管事件，执行最终的无感刷新
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!refreshing) {
@@ -461,10 +464,42 @@ document.getElementById('confirmUpdateBtn').addEventListener('click', () => {
   btn.innerHTML = '正在更新...';
   btn.style.opacity = '0.7';
   if (newWorker) {
-    // 告诉新版本 Worker 立刻跳过等待阶段，接管页面
     newWorker.postMessage({ type: 'SKIP_WAITING' });
   }
 });
+
+// 🌟 手动检查更新按钮逻辑
+document.getElementById('checkUpdateBtn').onclick = () => {
+  triggerVibrate(20);
+  const btn = document.getElementById('checkUpdateBtn');
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = '正在检查...';
+  btn.style.opacity = '0.7';
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.update().then(() => {
+        // 如果有更新，上面的 updatefound 会监听到并弹窗
+        // 延迟 1.5 秒恢复按钮，如果没有弹窗说明是最新版
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+          btn.style.opacity = '1';
+          if (document.getElementById('updateAppModal').classList.contains('hidden')) {
+            showToast('当前已是最新版本 🎉');
+          }
+        }, 1500);
+      }).catch(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.opacity = '1';
+        showToast('检查失败，请检查网络设置');
+      });
+    });
+  } else {
+    btn.innerHTML = originalHTML;
+    btn.style.opacity = '1';
+    showToast('当前环境不支持离线更新');
+  }
+};
 // ================================================================
 
 function showToast(msg, duration = 2000) {
@@ -512,7 +547,6 @@ window.addEventListener('pageshow', function(event) {
     for(let b=1;b<=5;b++) document.getElementById('box'+b+'Count').textContent = c[b];
     document.getElementById('totalCount').textContent = `(${cards.length})`;
     
-    // 更新全局熟练度 (除阶段 1 之外的卡片占比)
     let total = cards.length;
     let mastery = total === 0 ? 0 : Math.round(((total - c[1]) / total) * 100);
     document.getElementById('masteryProgress').style.width = mastery + '%';
@@ -558,7 +592,6 @@ window.addEventListener('pageshow', function(event) {
     if(!card) return;
     card.box = newBox;
     
-    // Bug 修复 2：将下次复习时间严格对齐到当天的 00:00:00，防止相差几小时导致的错觉
     const d = new Date();
     d.setHours(0, 0, 0, 0); 
     d.setDate(d.getDate() + BOX_INTERVALS[newBox-1]);
@@ -576,7 +609,6 @@ window.addEventListener('pageshow', function(event) {
     document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
   };
 
-  // 防误触：手指滑动长文本时，取消点击翻转判定
   const fc = document.getElementById('flashcard');
   let startY = 0, isScrolling = false;
   fc.addEventListener('touchstart', e => { startY = e.touches[0].clientY; isScrolling = false; }, {passive: true});
@@ -611,7 +643,6 @@ window.addEventListener('pageshow', function(event) {
     showToast('卡片已添加');
   };
 
-  // 键盘快捷键监听
   window.addEventListener('keydown', (e) => {
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
     if (!currentCardId) return;
@@ -709,7 +740,6 @@ window.addEventListener('pageshow', function(event) {
     el.textContent = last ? `上次备份：${new Date(last).toLocaleDateString('zh-CN')} ${new Date(last).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}` : '上次备份：从未';
   }
 
-  // Bug 修复 1：摒弃定时器 setTimeout 防止整型溢出，改为安全轮询对比时间戳
   function checkBackup() {
     if(!autoBackupEnabled) return;
     const last = localStorage.getItem('leitner_last_backup');
@@ -785,11 +815,10 @@ window.addEventListener('pageshow', function(event) {
     document.getElementById('libraryPage').classList.toggle('active',p==='library');
     document.getElementById('navReview').classList.toggle('active',p==='review');
     document.getElementById('navLibrary').classList.toggle('active',p==='library');
-    localStorage.setItem('leitner_last_tab', p); // 状态记忆
+    localStorage.setItem('leitner_last_tab', p);
     if(p==='library') renderLibrary();
   };
 
-  // 初始化设置与安全备份轮询
   autoBackupEnabled = localStorage.getItem('leitner_auto_backup')==='true';
   backupIntervalNum = parseInt(localStorage.getItem('leitner_backup_num'))||1;
   backupIntervalUnit = localStorage.getItem('leitner_backup_unit')||'day';
@@ -800,13 +829,12 @@ window.addEventListener('pageshow', function(event) {
   
   if (autoBackupEnabled) {
     checkBackup();
-    setInterval(checkBackup, 60000); // 改用 setInterval，每分钟安静地检查一次即可
+    setInterval(checkBackup, 60000);
   }
 
   load(); 
   updateStats();
   
-  // 恢复上次浏览的页面
   const lastTab = localStorage.getItem('leitner_last_tab') || 'review';
   switchPage(lastTab);
   
