@@ -419,7 +419,7 @@
 // ================= Service Worker 一键更新核心逻辑 =================
 let newWorker;
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' }).then(reg => {
     // 强制每次打开页面时去服务器探测一下 sw.js 是否发生改变
     reg.update();
 
