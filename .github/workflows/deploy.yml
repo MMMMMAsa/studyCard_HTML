@@ -1,13 +1,11 @@
 name: Auto Deploy PWA
 
-# 每次代码推送到 main 分支时触发
 on:
   push:
-    branches: ["main"] # 如果你的主分支叫 master，请改成 "master"
+    branches: ["main"]
 
-# 赋予 GitHub Actions 部署 Pages 的权限
 permissions:
-  contents: read
+  contents: write  # 这里需要 write 权限，因为机器人要创建 Release 标签
   pages: write
   id-token: write
 
@@ -25,11 +23,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 核心魔法：部署前，将 sw.js 中的占位符替换为当前的 UNIX 时间戳
-      # 终极魔法：强制在 sw.js 第一行写入当前时间戳，绝不会因为占位符写错而失效
-      - name: Force Update Service Worker
+      - name: Read Log and Generate Version
+        id: versioning
         run: |
-          echo "// AUTO-UPDATE: $(date +%s)" | cat - sw.js > temp && mv temp sw.js
+          # 1. 提取你写在 version.json 里的 log 描述
+          LOG_TEXT=$(jq -r '.log' version.json)
+          echo "LOG_TEXT=$LOG_TEXT" >> $GITHUB_ENV
+          
+          # 2. 自动生成年月日的版本号，例如 v2026.05.26.1830
+          AUTO_VERSION="v$(date +'%Y.%m.%d.%H%M')"
+          echo "AUTO_VERSION=$AUTO_VERSION" >> $GITHUB_ENV
+
+      - name: Force Update Service Worker & JSON
+        run: |
+          # 3. 强制给 sw.js 砸入时间戳，破解浏览器的幽灵缓存
+          echo "// AUTO-UPDATE: $(date +%s)" | cat - sw.js > temp_sw && mv temp_sw sw.js
+          
+          # 4. 把自动生成的版本号注入到待发布的 version.json 里
+          jq --arg v "${{ env.AUTO_VERSION }}" '.version = $v' version.json > temp_v.json && mv temp_v.json version.json
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 5. 核心魔法：调用 GitHub 官方接口，自动创建一个权威的 Release 发行版
+          gh release create ${{ env.AUTO_VERSION }} \
+            --title "版本更新: ${{ env.AUTO_VERSION }}" \
+            --notes "${{ env.LOG_TEXT }}"
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
