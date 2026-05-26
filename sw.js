@@ -8,7 +8,9 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.add(MAIN_PAGE).catch(() => {});
-    }).then(() => self.skipWaiting())
+    })
+    // 删除了强制的 skipWaiting()
+    // 现在新版本下载完会乖乖在后台 waiting（排队），等待用户点击更新按钮
   );
 });
 
@@ -27,8 +29,8 @@ self.addEventListener('fetch', event => {
 
   // 只对主页面（index.html）的导航请求做缓存优先
   const isMainPageNav = event.request.mode === 'navigate' &&
-                        new URL(event.request.url).pathname.endsWith('/studyCard_HTML/') || 
-                        new URL(event.request.url).pathname.endsWith('/studyCard_HTML/index.html');
+                        (new URL(event.request.url).pathname.endsWith('/studyCard_HTML/') || 
+                         new URL(event.request.url).pathname.endsWith('/studyCard_HTML/index.html'));
 
   if (isMainPageNav) {
     event.respondWith(
@@ -59,6 +61,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
+// 接收弹窗按钮发来的确认指令，这时候才真正接管
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
