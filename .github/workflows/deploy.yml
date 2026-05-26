@@ -31,7 +31,7 @@ jobs:
           echo "LOG_TEXT=$LOG_TEXT" >> $GITHUB_ENV
           
           # 2. 自动生成年月日的版本号，例如 v2026.05.26.1830
-          AUTO_VERSION="v$(date +'%Y.%m.%d.%H%M')"
+          AUTO_VERSION="v$(date +'%Y.%m.%d.%H%M%S')"
           echo "AUTO_VERSION=$AUTO_VERSION" >> $GITHUB_ENV
 
       - name: Force Update Service Worker & JSON
